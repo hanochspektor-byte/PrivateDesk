@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0d14">
+<title>PrivateDesk</title>
+
+<style>
+:root {
+  --bg:#0b0d14;
+  --panel:#151a27;
+  --panel2:#1d2333;
+  --border:#2b3245;
+  --purple:#987cff;
+  --text:#f5f5fb;
+  --muted:#929bb0;
+  --green:#55d6a0;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:Arial,sans-serif;height:100vh;overflow:hidden;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+.app{
+  height:100vh;padding:14px;display:grid;
+  grid-template-columns:175px 1fr;gap:14px;
+}
+.sidebar{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:20px;padding:17px 12px;
+  display:flex;flex-direction:column;
+}
+.logo{font-size:22px;font-weight:bold;padding:5px 8px 20px}
+.logo span{color:var(--purple)}
+nav{display:grid;gap:8px}
+nav button{
+  background:transparent;border:1px solid transparent;
+  border-radius:12px;padding:13px;text-align:right;
+  color:var(--muted);font-size:14px;
+}
+nav button.active{
+  background:#30264c;color:white;border-color:#514275;
+}
+nav button:hover{background:var(--panel2)}
+.sidebar footer{
+  margin-top:auto;color:var(--muted);font-size:10px;
+  padding:10px 5px;
+}
+.main{min-width:0;display:flex;flex-direction:column;gap:14px}
+header{
+  height:55px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 8px;
+}
+h1{font-size:21px;margin:0}
+.subtitle{font-size:11px;color:var(--muted);margin-top:4px}
+.status{
+  border:1px solid var(--border);background:var(--panel);
+  border-radius:30px;padding:9px 14px;font-size:11px;
+}
+.status.online{color:var(--green)}
+.status.offline{color:#ff737d}
+.content{flex:1;min-height:0;overflow:auto}
+.page{display:none;height:100%}
+.page.active{display:block}
+.card{
+  background:linear-gradient(145deg,#191f2e,#121622);
+  border:1px solid var(--border);border-radius:19px;padding:18px;
+}
+.card-title{font-size:14px;font-weight:bold;margin-bottom:17px}
+.dashboard{
+  display:grid;grid-template-columns:1.3fr 1fr;
+  gap:14px;height:100%;
+}
+.left,.right{display:grid;gap:14px;min-height:0}
+.left{grid-template-rows:1.2fr .8fr}
+.right{grid-template-rows:1fr 1fr}
+.cpu-number{font-size:58px;font-weight:bold;margin:15px 0}
+.cpu-number small{font-size:17px;color:var(--muted)}
+.bar{height:9px;background:#292e40;border-radius:20px;overflow:hidden}
+.bar div{
+  height:100%;width:0%;background:linear-gradient(90deg,#7057d8,#b49fff);
+  transition:width .4s;
+}
+#chart{width:100%;height:100px;margin-top:15px}
+.quick-grid,.tile-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+}
+.tile{
+  border:1px solid var(--border);background:var(--panel2);
+  border-radius:15px;padding:14px;text-align:right;
+  display:flex;flex-direction:column;justify-content:space-between;
+  min-height:85px;gap:12px;
+}
+.tile:hover{border-color:var(--purple)}
+.tile .ico{font-size:23px}
+.tile b{font-size:13px}
+.tile small{font-size:10px;color:var(--muted)}
+.info{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;
+}
+.info div{
+  background:#10141f;border:1px solid var(--border);
+  border-radius:12px;padding:12px;
+}
+.info small{display:block;color:var(--muted);font-size:10px}
+.info b{display:block;margin-top:7px;font-size:14px}
+.section-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+}
+.section-grid .tile{min-height:115px}
+.note{font-size:11px;color:var(--muted);margin-top:15px}
+@media(orientation:portrait){
+  .app{grid-template-columns:1fr;grid-template-rows:1fr 65px;padding:7px}
+  .sidebar{grid-row:2;grid-column:1;padding:5px}
+  .logo,.sidebar footer{display:none}
+  nav{display:flex;justify-content:space-around}
+  nav button{text-align:center;padding:9px 5px;font-size:10px}
+  .main{grid-row:1}
+  .dashboard{grid-template-columns:1fr;height:auto}
+  .left,.right{grid-template-rows:auto}
+  .section-grid{grid-template-columns:repeat(2,1fr)}
+}
+
+/* Landscape screen fit */
+html,body{
+  width:100%;height:100%;min-height:0;overflow:hidden !important;
+}
+body{height:100dvh}
+.app{
+  height:100dvh;min-height:0;
+  padding:clamp(5px,1.5vh,12px);
+  grid-template-columns:clamp(118px,15vw,175px) minmax(0,1fr);
+  gap:clamp(6px,1.5vh,12px);overflow:hidden;
+}
+.sidebar{
+  min-height:0;
+  padding:clamp(7px,1.5vh,14px) clamp(6px,1vw,12px);
+}
+.logo{
+  font-size:clamp(15px,2.5vh,22px);
+  padding:4px 7px clamp(7px,2vh,18px);
+}
+nav{gap:clamp(3px,1vh,8px)}
+nav button{
+  padding:clamp(6px,1.5vh,12px);
+  font-size:clamp(10px,1.8vh,14px);
+}
+.sidebar footer{padding:6px 4px;font-size:9px}
+.main{
+  min-width:0;min-height:0;height:100%;
+  gap:clamp(5px,1.5vh,12px);overflow:hidden;
+}
+header{
+  flex:0 0 clamp(38px,11vh,55px);
+  height:auto;min-height:0;padding:0 6px;
+}
+h1{font-size:clamp(15px,4vh,21px)}
+.subtitle{font-size:clamp(9px,2vh,11px);margin-top:2px}
+.status{
+  padding:clamp(5px,1.5vh,9px) clamp(7px,1.5vw,14px);
+  font-size:clamp(9px,2vh,11px);white-space:nowrap;
+}
+.content{flex:1 1 0;min-height:0;height:0;overflow:hidden !important}
+.page{height:100%;min-height:0;overflow:hidden}
+.card{
+  min-height:0;
+  padding:clamp(8px,2.5vh,17px);
+  border-radius:15px;
+}
+.card-title{
+  font-size:clamp(11px,3vh,14px);
+  margin-bottom:clamp(5px,1.8vh,13px);
+}
+.dashboard{
+  height:100%;min-height:0;gap:clamp(6px,1.5vh,12px);
+  grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);
+}
+.left,.right{min-height:0;gap:clamp(6px,1.5vh,12px)}
+.left{grid-template-rows:minmax(0,1.2fr) minmax(0,.8fr)}
+.right{grid-template-rows:repeat(2,minmax(0,1fr))}
+.left>.card,.right>.card{min-height:0;overflow:hidden}
+.cpu-number{
+  font-size:clamp(30px,10vh,54px);
+  margin:clamp(2px,1vh,10px) 0;
+}
+.cpu-number small{font-size:clamp(12px,3vh,17px)}
+.bar{height:clamp(6px,1.8vh,9px)}
+#chart{height:clamp(28px,12vh,78px);margin-top:clamp(3px,1vh,10px)}
+.note{font-size:clamp(9px,2vh,11px);margin-top:clamp(4px,1vh,10px)}
+.quick-grid,.tile-grid{gap:clamp(4px,1.2vh,10px)}
+.tile{
+  min-height:0;padding:clamp(6px,1.5vh,12px);
+  gap:clamp(3px,1vh,8px);border-radius:12px;
+}
+.tile .ico{font-size:clamp(15px,4.5vh,23px)}
+.tile b{font-size:clamp(9px,2.6vh,13px)}
+.tile small{font-size:clamp(8px,1.9vh,10px)}
+.info{gap:clamp(4px,1vh,9px)}
+.info div{padding:clamp(5px,1.5vh,11px)}
+.info small{font-size:clamp(8px,1.9vh,10px)}
+.info b{
+  font-size:clamp(10px,2.8vh,14px);
+  margin-top:clamp(3px,.8vh,6px);overflow-wrap:anywhere;
+}
+.page:not(#home)>.card{
+  height:100%;display:flex;flex-direction:column;overflow:hidden;
+}
+.section-grid{
+  flex:1 1 0;min-height:0;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-rows:repeat(2,minmax(0,1fr));
+  gap:clamp(5px,1.4vh,12px);
+}
+.section-grid .tile{min-height:0}
+.page:not(#home) .note{flex:0 0 auto}
+
+@media(orientation:landscape) and (max-height:420px){
+  .app{padding:5px;gap:5px;grid-template-columns:112px minmax(0,1fr)}
+  .sidebar{padding:5px}
+  .logo{font-size:14px;padding-bottom:5px}
+  nav{gap:2px}
+  nav button{padding:5px;font-size:9px}
+  .main{gap:4px}
+  header{flex-basis:35px}
+  .card{padding:7px}
+  .card-title{margin-bottom:4px}
+  .cpu-number{font-size:28px;margin:2px 0}
+  #chart{height:27px;margin-top:2px}
+  .tile{padding:4px;gap:2px}
+  .tile .ico{font-size:15px}
+  .tile b{font-size:9px}
+  .info div{padding:4px}
+}
+@media(orientation:portrait){
+  body,.app,.main,.content,.page{overflow:hidden !important}
+}
+
+/* Larger landscape UI */
+@media(orientation:landscape){
+  .app{
+    padding:8px;gap:9px;
+    grid-template-columns:clamp(125px,16vw,175px) minmax(0,1fr);
+  }
+  .sidebar{padding:10px 8px}
+  nav{gap:7px}
+  nav button{padding:10px 8px;font-size:13px}
+  header{flex-basis:48px}
+  h1{font-size:21px}
+  .subtitle{font-size:11px}
+  .card{padding:12px}
+  .card-title{font-size:15px;margin-bottom:10px}
+  .cpu-number{font-size:clamp(38px,10vh,52px);margin:7px 0}
+  .cpu-number small{font-size:16px}
+  #chart{height:clamp(35px,11vh,65px)}
+  .tile{padding:9px 7px;gap:6px;border-radius:13px}
+  .tile .ico{font-size:clamp(21px,5vh,29px)}
+  .tile b{font-size:clamp(12px,2.8vh,15px)}
+  .tile small{font-size:clamp(10px,2.2vh,12px)}
+  .quick-grid,.tile-grid{gap:8px}
+  .info div{padding:9px}
+  .info small{font-size:11px}
+  .info b{font-size:14px}
+  .note{font-size:11px}
+  .content,.page{min-height:0;overflow:hidden !important}
+}
+@media(orientation:landscape) and (max-height:420px){
+  .tile{padding:7px 5px}
+  .tile .ico{font-size:22px}
+  .tile b{font-size:12px}
+  .tile small{font-size:10px}
+  .card{padding:9px}
+  .card-title{font-size:14px;margin-bottom:7px}
+  .cpu-number{font-size:38px}
+  nav button{font-size:12px;padding:8px 6px}
+}
+
+/* Icon-first, swipe navigation */
+html,body{
+  width:100%;height:100%;min-height:0;
+  overflow:hidden !important;overscroll-behavior:none;
+}
+body{height:100dvh}
+.app{
+  width:100%;height:100dvh;min-height:0;
+  display:block;padding:clamp(6px,1.2vh,12px);overflow:hidden;
+}
+.sidebar{display:none !important}
+.main{
+  width:100%;height:100%;min-width:0;min-height:0;
+  display:flex;flex-direction:column;
+  gap:clamp(5px,1vh,10px);overflow:hidden;
+}
+.topbar{
+  flex:0 0 clamp(38px,9vh,52px);height:auto;min-height:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 4px;direction:ltr;
+}
+.top-nav{display:flex;align-items:center;gap:clamp(5px,1.2vw,12px)}
+.top-nav button{
+  width:clamp(36px,7vh,46px);height:clamp(36px,7vh,46px);
+  padding:0;display:grid;place-items:center;
+  border:1px solid transparent;border-radius:13px;
+  background:var(--panel);color:var(--muted);
+  font-size:clamp(20px,4.2vh,27px);line-height:1;
+}
+.top-nav button.active{
+  color:#fff;background:#30264c;border-color:#66528f;
+  box-shadow:0 0 15px #987cff25;
+}
+.top-nav button:focus-visible,.tile:focus-visible{
+  outline:2px solid var(--purple);outline-offset:2px;
+}
+.status{
+  width:12px;height:12px;min-width:12px;padding:0;
+  overflow:hidden;border:0;border-radius:50%;
+  font-size:0;background:#d6a84b;
+}
+.status.online{background:var(--green)}
+.status.offline{background:#ff737d}
+.content{
+  flex:1 1 0;width:100%;min-height:0;height:0;
+  overflow:hidden !important;touch-action:pan-y;overscroll-behavior:none;
+}
+.page{display:none;width:100%;height:100%;min-height:0;overflow:hidden}
+.page.active{display:block}
+.card{min-width:0;min-height:0;height:100%;padding:clamp(9px,1.8vh,16px);overflow:hidden}
+.card-title{font-size:clamp(11px,2.5vh,14px);margin-bottom:clamp(5px,1vh,10px)}
+.tile{
+  min-width:0;min-height:0 !important;padding:clamp(7px,1.5vh,13px);
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;gap:5px;
+}
+.tile .ico{font-size:clamp(25px,6vh,38px);line-height:1.1}
+.tile b{display:none;font-size:clamp(10px,2.2vh,13px);line-height:1.15}
+#apps .tile b{display:block}
+.tile small{display:none}
+.quick-grid,.tile-grid,.section-grid{min-height:0;gap:clamp(6px,1.2vh,11px)}
+.section-grid{
+  height:calc(100% - 25px);
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-rows:repeat(2,minmax(0,1fr));
+}
+.page:not(#home)>.card{height:100%;display:flex;flex-direction:column}
+#home .dashboard{height:100%;min-height:0;gap:clamp(6px,1.2vh,12px)}
+#home .left,#home .right{min-height:0;gap:clamp(6px,1.2vh,12px)}
+#home .left>.card,#home .right>.card{height:auto}
+#home .left>.card:first-child .card-title{display:block}
+#home .left>.card:not(:first-child) .card-title,
+#home .right .card-title{display:none}
+#home .quick-grid{height:100%}
+#home .tile .ico{font-size:clamp(27px,6.5vh,42px)}
+#home .info{height:100%}
+#home .info div{padding:clamp(6px,1.2vh,11px)}
+#home .info small{font-size:clamp(8px,1.7vh,10px)}
+#home .info b{font-size:clamp(10px,2.2vh,13px);margin-top:4px}
+#home .note{font-size:clamp(9px,1.8vh,11px)}
+#system .note{margin:0 0 12px}
+#system .tile{width:clamp(100px,18vw,180px) !important;height:clamp(85px,22vh,150px)}
+@media(orientation:landscape) and (max-height:420px){
+  .app{padding:5px}
+  .topbar{flex-basis:34px}
+  .top-nav{gap:5px}
+  .top-nav button{width:32px;height:32px;font-size:19px;border-radius:9px}
+  .status{width:9px;height:9px;min-width:9px}
+  .card{padding:7px}
+  .tile{padding:5px}
+  .tile .ico{font-size:23px}
+  #home .tile .ico{font-size:26px}
+  #home .cpu-number{font-size:clamp(30px,9vh,40px);margin:3px 0}
+  #home #chart{height:clamp(24px,7vh,34px);margin-top:3px}
+}
+@media(orientation:portrait){
+  .app{padding:6px}
+  .topbar{flex-basis:42px}
+  .top-nav{gap:4px}
+  .top-nav button{width:36px;height:36px}
+  #home .dashboard{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+  #home .left,#home .right{grid-template-rows:1fr 1fr}
+}
+
+/* Refined landscape navigation */
+.topbar{flex-basis:clamp(58px,11vh,76px);gap:12px}
+.top-nav{
+  flex:1 1 auto;justify-content:flex-start;
+  gap:clamp(7px,1.2vw,15px);min-width:0;
+}
+.top-nav button{
+  width:clamp(78px,10vw,116px);height:clamp(50px,9vh,66px);
+  display:flex;flex-direction:row;align-items:center;justify-content:center;
+  gap:9px;padding:5px 10px;border-radius:15px;
+  font-size:clamp(13px,2.3vh,17px);white-space:nowrap;
+}
+.top-nav .nav-ico{font-size:clamp(22px,4vh,30px);line-height:1}
+.top-nav .nav-label{font-size:clamp(13px,2.4vh,17px);font-weight:700}
+.topbar-side{display:flex;align-items:center;gap:14px;flex:0 0 auto}
+.swipe-hint{color:var(--muted);font-size:clamp(12px,2.1vh,15px);white-space:nowrap}
+.status{
+  width:auto;height:auto;min-width:0;padding:9px 15px;
+  display:flex;align-items:center;gap:8px;overflow:visible;
+  border:1px solid var(--border);border-radius:14px;
+  color:var(--text);background:var(--panel);font-size:15px;
+}
+.status::after{content:"Connecting";font-size:14px;font-weight:700}
+.status.online::after{content:"Connected"}
+.status.offline::after{content:"Disconnected"}
+.status.online{color:var(--green)}
+.status.offline{color:#ff737d}
+
+#home .dashboard{
+  display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);
+  grid-template-rows:minmax(0,1fr);gap:clamp(9px,1.4vw,16px);
+}
+#home .left{grid-template-rows:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(9px,1.4vh,14px)}
+#home .right{grid-template-rows:minmax(0,1fr);gap:clamp(9px,1.4vh,14px)}
+#home .left>.card,#home .right>.card{
+  height:auto;min-height:0;padding:clamp(12px,2vh,19px);
+}
+#home .card-title{
+  display:block !important;font-size:clamp(15px,2.8vh,19px);
+  margin-bottom:clamp(8px,1.5vh,13px);
+}
+#home .info{gap:9px}
+#home .info div{padding:clamp(9px,1.7vh,14px)}
+#home .info small{font-size:clamp(11px,2vh,14px)}
+#home .info b{font-size:clamp(14px,2.7vh,19px);margin-top:6px}
+#home .tile .ico{font-size:clamp(31px,6.4vh,46px)}
+#home .tile b{display:block;font-size:clamp(12px,2.2vh,15px)}
+#home .quick-grid{height:calc(100% - 28px)}
+#home .cpu-number{font-size:clamp(42px,10vh,66px);margin:clamp(4px,1.2vh,12px) 0}
+#home #chart{height:clamp(40px,10vh,85px)}
+
+#computer>.computer-card{
+  height:100%;display:flex;flex-direction:column;
+  padding:clamp(14px,2.5vh,24px);
+}
+#computer .card-title{
+  font-size:clamp(18px,3.2vh,24px);
+  margin-bottom:clamp(12px,2.2vh,20px);
+}
+.computer-grid{
+  flex:1;min-height:0;display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-rows:repeat(2,minmax(0,1fr));
+  gap:clamp(10px,1.5vw,18px);
+}
+.computer-stat{
+  min-width:0;display:grid;grid-template-columns:auto 1fr;
+  grid-template-rows:auto 1fr;align-items:center;
+  column-gap:14px;row-gap:5px;
+  padding:clamp(13px,2.2vh,22px);
+  border:1px solid var(--border);border-radius:18px;
+  background:linear-gradient(145deg,#1b2232,#111621);
+}
+.computer-stat .stat-icon{grid-row:1 / span 2;font-size:clamp(34px,7vh,54px)}
+.computer-stat small{color:var(--muted);font-size:clamp(13px,2.5vh,17px)}
+.computer-stat b{font-size:clamp(19px,3.8vh,29px);overflow-wrap:anywhere}
+.computer-stat.primary{border-color:#66528f;background:linear-gradient(145deg,#29213f,#171827)}
+.computer-foot{
+  flex:0 0 auto;display:flex;align-items:center;gap:9px;
+  padding-top:12px;color:var(--muted);font-size:clamp(12px,2.2vh,15px);
+}
+.live-dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 10px #55d6a080}
+
+.page:not(#home) .card-title{font-size:clamp(17px,3vh,22px);margin-bottom:clamp(10px,2vh,18px)}
+.section-grid{gap:clamp(8px,1.4vw,15px)}
+.section-grid .tile{border-radius:17px}
+.section-grid .tile .ico{font-size:clamp(34px,7vh,52px)}
+.section-grid .tile b{display:block;font-size:clamp(13px,2.4vh,17px)}
+.section-grid .tile small{display:block;font-size:clamp(11px,2vh,14px)}
+
+@media(orientation:landscape) and (max-height:420px){
+  .topbar{flex-basis:52px}
+  .top-nav button{height:44px;width:clamp(68px,10vw,95px);gap:6px}
+  .top-nav .nav-ico{font-size:22px}
+  .top-nav .nav-label{font-size:12px}
+  .swipe-hint{font-size:11px}
+  .status{padding:7px 10px;font-size:12px}
+  .status::after{font-size:12px}
+  #home .left>.card,#home .right>.card{padding:8px}
+  #home .card-title{font-size:13px;margin-bottom:5px}
+  #home .info small{font-size:10px}
+  #home .info b{font-size:13px}
+  #home .tile .ico{font-size:28px}
+  #home .tile b{font-size:11px}
+  .computer-stat{padding:9px}
+  .computer-stat .stat-icon{font-size:30px}
+  .computer-stat small{font-size:11px}
+  .computer-stat b{font-size:17px}
+}
+@media(orientation:landscape) and (max-width:700px){
+  .swipe-hint{display:none}
+  .top-nav{gap:4px}
+  .top-nav button{width:auto;min-width:0;flex:1;padding:4px 5px;gap:4px}
+  .top-nav .nav-label{font-size:11px}
+  .top-nav .nav-ico{font-size:20px}
+  .topbar-side{gap:4px}
+}
+
+/* App icons */
+.app-mark{
+  width:clamp(42px,8vh,64px);
+  height:clamp(42px,8vh,64px);
+  object-fit:contain;display:block;pointer-events:none;
+  filter:drop-shadow(0 3px 8px rgba(0,0,0,.22));
+  overflow:visible;
+}
+.app-mark use{pointer-events:none}
+#home .right .tile,#apps .tile{
+  position:relative;justify-content:center;align-items:center;padding:8px;
+}
+#home .right .tile b,#apps .tile b{display:none !important}
+#home .right .app-mark{width:clamp(38px,7.5vh,58px);height:clamp(38px,7.5vh,58px)}
+#apps .app-mark{width:clamp(42px,8vh,66px);height:clamp(42px,8vh,66px)}
+@media(orientation:landscape) and (max-height:420px){
+  #home .right .app-mark{width:clamp(30px,8vh,42px);height:clamp(30px,8vh,42px)}
+  #apps .app-mark{width:clamp(34px,9vh,48px);height:clamp(34px,9vh,48px)}
+}
+
+/* English UI and six shortcuts */
+body{direction:ltr}
+.topbar{direction:ltr}
+.tile{text-align:center}
+#home .right .quick-grid{
+  height:calc(100% - 28px);
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  grid-template-rows:repeat(2,minmax(0,1fr));
+  gap:clamp(7px,1.2vh,12px);
+}
+#home .right .quick-grid .tile{min-height:0}
+#apps .section-grid{grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
+
+/* Process viewer */
+.process-card{height:100%;min-height:0;display:flex;flex-direction:column;gap:14px}
+.process-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.refresh-processes{
+  border:1px solid rgba(169,148,255,.35);
+  background:rgba(169,148,255,.12);color:#eee9ff;
+  border-radius:12px;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer;
+}
+.process-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;min-height:0}
+.process-item{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  min-width:0;padding:12px 14px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.035);border-radius:13px;
+}
+.process-name{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.process-meta{font-size:12px;color:#aaa3c4;white-space:nowrap;text-align:right}
+.process-empty{grid-column:1/-1;padding:22px;color:#aaa3c4}
+@media(max-width:900px){.process-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.app-mark {
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  object-fit: contain;
+}
+
+.app-tile .app-mark {
+  width: 60px;
+  height: 60px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Offline brand icon library -->
+<svg xmlns="http://www.w3.org/2000/svg"
+     style="position:absolute;width:0;height:0;overflow:hidden"
+     aria-hidden="true">
+
+  <symbol id="brand-chrome" viewBox="0 0 48 48">
+    <circle cx="24" cy="24" r="23" fill="#fff"/>
+    <path fill="#EA4335" d="M24 1a23 23 0 0 0-19.9 11.5L14 29.5h10a5.5 5.5 0 0 1 4.8 2.8l8.7-15.1A22.9 22.9 0 0 0 24 1z"/>
+    <path fill="#34A853" d="M4.1 12.5A23 23 0 0 0 24 47l10.8-18.7-5-8.7a5.5 5.5 0 0 1-5.8 9.9H14z"/>
+    <path fill="#FBBC05" d="M24 47a23 23 0 0 0 23-23 22.7 22.7 0 0 0-9.5-18.5L27.2 24.2l-2.8 4.9z"/>
+    <circle cx="24" cy="24" r="10.5" fill="#fff"/>
+    <circle cx="24" cy="24" r="8.5" fill="#4285F4"/>
+  </symbol>
+
+  <symbol id="brand-spotify" viewBox="0 0 48 48">
+    <circle cx="24" cy="24" r="23" fill="#1ED760"/>
+    <path d="M11 18c9-2.8 19.5-1.8 27 2.7" fill="none" stroke="#101010" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M13 24c7.5-2.2 16.5-1.3 22.5 2.3" fill="none" stroke="#101010" stroke-width="3" stroke-linecap="round"/>
+    <path d="M15 30c6-1.5 12.5-.8 17.5 2" fill="none" stroke="#101010" stroke-width="2.7" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="brand-discord" viewBox="0 0 48 48">
+    <rect width="46" height="46" x="1" y="1" rx="14" fill="#5865F2"/>
+    <path fill="#fff" d="M35.7 13.2a29 29 0 0 0-7.1-2.2l-.9 1.8a26 26 0 0 0-7.4 0l-.9-1.8a29 29 0 0 0-7.1 2.2c-4.5 6.7-5.7 13.2-5.1 19.6a29 29 0 0 0 8.7 4.4l1.9-3.1a18 18 0 0 1-3-1.5l.7-.5c5.8 2.7 12.1 2.7 17.8 0l.7.5a18 18 0 0 1-3 1.5l1.9 3.1a29 29 0 0 0 8.7-4.4c.7-7.4-1.2-13.8-5.9-19.6ZM18.5 28.7c-1.7 0-3-1.5-3-3.3s1.3-3.3 3-3.3 3 1.5 3 3.3-1.3 3.3-3 3.3Zm11 0c-1.7 0-3-1.5-3-3.3s1.3-3.3 3-3.3 3 1.5 3 3.3-1.3 3.3-3 3.3Z"/>
+  </symbol>
+
+  <symbol id="brand-claude" viewBox="0 0 48 48">
+    <g fill="none" stroke="#D97757" stroke-width="3.4" stroke-linecap="round">
+      <path d="M24 3v42M3 24h42M9.2 9.2l29.6 29.6M38.8 9.2 9.2 38.8"/>
+      <path d="m16 5 8 19 8-19M16 43l8-19 8 19M5 16l19 8 19-8M5 32l19-8 19 8"/>
+    </g>
+  </symbol>
+
+  <symbol id="brand-github" viewBox="0 0 48 48">
+    <circle cx="24" cy="24" r="23" fill="#fff"/>
+    <path fill="#171717" d="M24 7.5a16.5 16.5 0 0 0-5.2 32.2c.8.1 1.1-.3 1.1-.8v-3.1c-4.5 1-5.5-1.9-5.5-1.9-.7-1.8-1.8-2.3-1.8-2.3-1.5-1 .1-1 .1-1 1.6.1 2.4 1.7 2.4 1.7 1.4 2.4 3.6 1.7 4.5 1.3.1-1 .5-1.7 1-2.1-3.6-.4-7.4-1.8-7.4-8.1 0-1.8.6-3.2 1.7-4.3-.2-.4-.7-2 .2-4.2 0 0 1.4-.4 4.5 1.7a15.7 15.7 0 0 1 8.2 0c3.1-2.1 4.5-1.7 4.5-1.7.9 2.2.4 3.8.2 4.2 1.1 1.1 1.7 2.5 1.7 4.3 0 6.3-3.8 7.7-7.4 8.1.6.5 1.1 1.4 1.1 2.8v4.6c0 .5.3.9 1.1.8A16.5 16.5 0 0 0 24 7.5Z"/>
+  </symbol>
+
+  <symbol id="brand-whatsapp" viewBox="0 0 48 48">
+    <circle cx="24" cy="24" r="23" fill="#25D366"/>
+    <path fill="#fff" d="M24 8.5A15.3 15.3 0 0 0 10.8 31.5L9 39l7.7-2a15.3 15.3 0 1 0 7.3-28.5Zm0 27.8c-2.3 0-4.5-.6-6.4-1.8l-.5-.3-4.5 1.2 1.2-4.4-.3-.5a12.4 12.4 0 1 1 10.5 5.8Zm6.8-9.3c-.4-.2-2.3-1.1-2.7-1.2-.4-.1-.6-.2-.9.2-.3.4-1 1.2-1.2 1.4-.2.3-.4.3-.8.1-.4-.2-1.7-.6-3.2-2-1.2-1-2-2.3-2.2-2.7-.2-.4 0-.6.2-.8l.6-.7c.2-.2.3-.4.4-.6.1-.3 0-.5 0-.7-.1-.2-.9-2.1-1.2-2.8-.3-.7-.6-.6-.9-.6h-.8c-.3 0-.7.1-1 .5-.4.4-1.3 1.3-1.3 3.2s1.4 3.7 1.6 4c.2.3 2.7 4.1 6.5 5.7.9.4 1.7.6 2.2.8.9.3 1.8.3 2.4.2.8-.1 2.3-.9 2.6-1.8.3-.9.3-1.6.2-1.8-.1-.2-.4-.3-.8-.5Z"/>
+  </symbol>
+
+</svg>
+
+<div class="app">
+<main class="main">
+
+<header class="topbar">
+  <nav class="top-nav" aria-label="Screen navigation">
+    <button class="active" data-page="home" title="Home" aria-label="Home"><span class="nav-ico">⌂</span><span class="nav-label">Home</span></button>
+    <button data-page="apps" title="Apps" aria-label="Apps"><span class="nav-ico">▦</span><span class="nav-label">Apps</span></button>
+    <button data-page="control" title="Controls" aria-label="Controls"><span class="nav-ico">⌘</span><span class="nav-label">Controls</span></button>
+    <button data-page="media" title="Media" aria-label="Media"><span class="nav-ico">♫</span><span class="nav-label">Media</span></button>
+    <button data-page="computer" title="Computer" aria-label="Computer"><span class="nav-ico">▣</span><span class="nav-label">Computer</span></button>
+    <button data-page="system" title="System" aria-label="System"><span class="nav-ico">⚙</span><span class="nav-label">System</span></button>
+  </nav>
+  <div class="topbar-side">
+    <span class="swipe-hint">Swipe left or right to navigate</span>
+    <div class="status" id="status" title="Connecting to computer" aria-label="Connection status">●</div>
+  </div>
+</header>
+
+<div class="content">
+
+<section class="page active" id="home">
+<div class="dashboard">
+
+<div class="left">
+  <div class="card">
+    <div class="card-title">CPU Usage</div>
+    <div class="cpu-number"><span id="cpu">—</span><small>%</small></div>
+    <div class="bar"><div id="cpuBar"></div></div>
+    <svg id="chart" viewBox="0 0 600 100" preserveAspectRatio="none">
+      <polyline id="chartLine" fill="none" stroke="#a994ff" stroke-width="3" points="0,90 600,90"/>
+    </svg>
+    <div class="note" id="updated">Waiting for data...</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Quick Actions</div>
+    <div class="quick-grid">
+      <button class="tile" data-action="lock"><span class="ico">🔒</span><b>Lock PC</b></button>
+      <button class="tile" data-action="media:playPause"><span class="ico">⏯️</span><b>Play / Pause</b></button>
+      <button class="tile" data-action="minimizeAll"><span class="ico">🗕</span><b>Minimize All</b></button>
+    </div>
+  </div>
+</div>
+
+<div class="right">
+  <div class="card">
+    <div class="card-title">Shortcuts</div>
+    <div class="quick-grid">
+      <button class="tile" data-action="launch:chrome" title="Google Chrome" aria-label="Google Chrome"><img class="app-mark" src="https://cdn.simpleicons.org/googlechrome/DB4437" alt=""></button>
+      <button class="tile" data-action="launch:calculator" title="Calculator" aria-label="Calculator">
+        <svg class="app-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <rect x="9" y="4" width="46" height="56" rx="9" fill="#38A9F2"/>
+          <rect x="17" y="12" width="30" height="11" rx="2" fill="#EAF7FF"/>
+          <g fill="#fff">
+            <rect x="17" y="29" width="8" height="8" rx="2"/><rect x="28" y="29" width="8" height="8" rx="2"/><rect x="39" y="29" width="8" height="8" rx="2"/>
+            <rect x="17" y="41" width="8" height="8" rx="2"/><rect x="28" y="41" width="8" height="8" rx="2"/><rect x="39" y="41" width="8" height="8" rx="2"/>
+          </g>
+        </svg>
+      </button>
+      <button class="tile" data-action="launch:spotify" title="Spotify" aria-label="Spotify"><img class="app-mark" src="https://cdn.simpleicons.org/spotify/1ED760" alt=""></button>
+      <button class="tile" data-action="launch:discord" title="Discord" aria-label="Discord"><img class="app-mark" src="https://cdn.simpleicons.org/discord/5865F2" alt=""></button>
+      <button class="tile" data-action="launch:claude" title="Claude" aria-label="Claude"><img class="app-mark" src="https://cdn.simpleicons.org/anthropic/D97757" alt=""></button>
+      <button class="tile" data-action="launch:githubdesktop" title="GitHub Desktop" aria-label="GitHub Desktop"><img class="app-mark" src="https://cdn.simpleicons.org/github/FFFFFF" alt=""></button>
+      <button class="tile" data-action="launch:whatsapp" title="WhatsApp" aria-label="WhatsApp"><img class="app-mark" src="https://cdn.simpleicons.org/whatsapp/25D366" alt=""></button>
+    </div>
+  </div>
+</div>
+
+</div>
+</section>
+
+<section class="page" id="apps">
+<div class="card">
+  <div class="card-title">Launch Apps</div>
+  <div class="section-grid">
+    <button class="tile" data-action="launch:chrome" title="Google Chrome" aria-label="Google Chrome"><img class="app-mark" src="https://cdn.simpleicons.org/googlechrome/DB4437" alt=""></button>
+    <button class="tile" data-action="launch:calculator" title="Calculator" aria-label="Calculator">
+      <svg class="app-mark" viewBox="0 0 64 64" aria-hidden="true">
+        <rect x="9" y="4" width="46" height="56" rx="9" fill="#38A9F2"/>
+        <rect x="17" y="12" width="30" height="11" rx="2" fill="#EAF7FF"/>
+        <g fill="#fff">
+          <rect x="17" y="29" width="8" height="8" rx="2"/><rect x="28" y="29" width="8" height="8" rx="2"/><rect x="39" y="29" width="8" height="8" rx="2"/>
+          <rect x="17" y="41" width="8" height="8" rx="2"/><rect x="28" y="41" width="8" height="8" rx="2"/><rect x="39" y="41" width="8" height="8" rx="2"/>
+        </g>
+      </svg>
+    </button>
+    <button class="tile" data-action="launch:spotify" title="Spotify" aria-label="Spotify"><img class="app-mark" src="https://cdn.simpleicons.org/spotify/1ED760" alt=""></button>
+    <button class="tile" data-action="launch:discord" title="Discord" aria-label="Discord"><img class="app-mark" src="https://cdn.simpleicons.org/discord/5865F2" alt=""></button>
+    <button class="tile" data-action="launch:claude" title="Claude" aria-label="Claude"><img class="app-mark" src="https://cdn.simpleicons.org/anthropic/D97757" alt=""></button>
+    <button class="tile" data-action="launch:githubdesktop" title="GitHub Desktop" aria-label="GitHub Desktop"><img class="app-mark" src="https://cdn.simpleicons.org/github/FFFFFF" alt=""></button>
+    <button class="tile" data-action="launch:whatsapp" title="WhatsApp" aria-label="WhatsApp"><img class="app-mark" src="https://cdn.simpleicons.org/whatsapp/25D366" alt=""></button>
+  </div>
+  <p class="note">Apps launch through the approved action list on your PC.</p>
+</div>
+</section>
+
+<section class="page" id="control">
+<div class="card">
+  <div class="card-title">PC Controls</div>
+  <div class="section-grid">
+    <button class="tile" data-action="lock"><span class="ico">🔒</span><b>Lock PC</b></button>
+    <button class="tile" data-action="shutdown"><span class="ico">⏻</span><b>Shut Down</b><small>Confirmation required</small></button>
+    <button class="tile" data-action="restart"><span class="ico">↻</span><b>Restart</b><small>Confirmation required</small></button>
+    <button class="tile" data-action="cancelShutdown"><span class="ico">✕</span><b>Cancel Shutdown</b></button>
+    <button class="tile" data-action="minimizeAll"><span class="ico">🗕</span><b>Minimize All</b></button>
+    <button class="tile" data-action="launch:calculator" title="Calculator" aria-label="Calculator">
+      <svg class="app-mark" viewBox="0 0 64 64" aria-hidden="true">
+        <rect x="9" y="4" width="46" height="56" rx="9" fill="#38A9F2"/>
+        <rect x="17" y="12" width="30" height="11" rx="2" fill="#EAF7FF"/>
+        <g fill="#fff">
+          <rect x="17" y="29" width="8" height="8" rx="2"/><rect x="28" y="29" width="8" height="8" rx="2"/><rect x="39" y="29" width="8" height="8" rx="2"/>
+          <rect x="17" y="41" width="8" height="8" rx="2"/><rect x="28" y="41" width="8" height="8" rx="2"/><rect x="39" y="41" width="8" height="8" rx="2"/>
+        </g>
+      </svg>
+    </button>
+  </div>
+</div>
+</section>
+
+<section class="page" id="media">
+<div class="card">
+  <div class="card-title">Media Controls</div>
+  <div class="section-grid">
+    <button class="tile" data-action="media:previous"><span class="ico">⏮</span><b>Previous</b></button>
+    <button class="tile" data-action="media:playPause"><span class="ico">⏯</span><b>Play / Pause</b></button>
+    <button class="tile" data-action="media:next"><span class="ico">⏭</span><b>Next</b></button>
+    <button class="tile" data-action="media:volumeUp"><span class="ico">🔊</span><b>Volume Up</b></button>
+    <button class="tile" data-action="media:volumeDown"><span class="ico">🔉</span><b>Volume Down</b></button>
+    <button class="tile" data-action="media:mute"><span class="ico">🔇</span><b>Mute</b></button>
+  </div>
+</div>
+</section>
+
+<section class="page" id="computer">
+<div class="card computer-card">
+  <div class="card-title">Workstation Status</div>
+  <div class="computer-grid">
+    <div class="computer-stat primary"><span class="stat-icon">🖥️</span><small>Computer Name</small><b id="pcName">Connecting...</b></div>
+    <div class="computer-stat"><span class="stat-icon">🔗</span><small>Connection</small><b id="pcStatus">Checking...</b></div>
+    <div class="computer-stat"><span class="stat-icon">🪟</span><small>Operating System</small><b>Windows</b></div>
+    <div class="computer-stat"><span class="stat-icon">🔒</span><small>Connection Type</small><b>Local &amp; Secure</b></div>
+  </div>
+  <div class="computer-foot"><span class="live-dot"></span> Connection details update automatically</div>
+</div>
+</section>
+
+<section class="page" id="system">
+<div class="card process-card">
+  <div class="process-heading">
+    <div class="card-title">Active Processes</div>
+    <button class="refresh-processes" id="refreshProcesses" type="button" title="Refresh process list">↻ Refresh</button>
+  </div>
+  <div class="process-grid" id="processList"><div class="process-empty">Loading processes...</div></div>
+  <p class="note">Read-only view. PrivateDesk does not terminate processes.</p>
+</div>
+</section>
+
+</div>
+</main>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const pageOrder=['home','apps','control','media','computer','system'];
+let currentPage=0;
+
+/* Replace remote image tags with local SVG symbols */
+const localIconMap={
+  'https://cdn.simpleicons.org/googlechrome/DB4437':'brand-chrome',
+  'https://cdn.simpleicons.org/spotify/1ED760':'brand-spotify',
+  'https://cdn.simpleicons.org/discord/5865F2':'brand-discord',
+  'https://cdn.simpleicons.org/anthropic/D97757':'brand-claude',
+  'https://cdn.simpleicons.org/github/FFFFFF':'brand-github',
+  'https://cdn.simpleicons.org/whatsapp/25D366':'brand-whatsapp'
+};
+
+document.querySelectorAll('img.app-mark').forEach(img=>{
+  const symbol=localIconMap[img.getAttribute('src')];
+  if(!symbol)return;
+
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('class','app-mark');
+  svg.setAttribute('viewBox','0 0 48 48');
+  svg.setAttribute('aria-hidden','true');
+
+  const use=document.createElementNS('http://www.w3.org/2000/svg','use');
+  use.setAttribute('href','#'+symbol);
+  svg.appendChild(use);
+  img.replaceWith(svg);
+});
+
+function showPage(page){
+ const index=pageOrder.indexOf(page);
+ if(index<0)return;
+ currentPage=index;
+ document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===page));
+ if(page==='system')refreshProcesses();
+ document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+}
+
+document.querySelectorAll('[data-page]').forEach(button=>{
+ button.addEventListener('click',()=>showPage(button.dataset.page));
+});
+
+/* Swipe navigation */
+const swipeArea=document.querySelector('.content');
+let touchStartX=0;
+let touchStartY=0;
+
+swipeArea.addEventListener('touchstart',event=>{
+ if(event.touches.length!==1)return;
+ touchStartX=event.touches[0].clientX;
+ touchStartY=event.touches[0].clientY;
+},{passive:true});
+
+swipeArea.addEventListener('touchend',event=>{
+ if(!touchStartX)return;
+ const dx=event.changedTouches[0].clientX-touchStartX;
+ const dy=event.changedTouches[0].clientY-touchStartY;
+ touchStartX=0;
+ if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.25)return;
+ currentPage=(currentPage+(dx<0?1:-1)+pageOrder.length)%pageOrder.length;
+ showPage(pageOrder[currentPage]);
+},{passive:true});
+
+/* Accessible names */
+const actionTitles={
+ 'lock':'Lock PC',
+ 'media:playPause':'Play / Pause',
+ 'launch:chrome':'Chrome',
+ 'launch:calculator':'Calculator',
+ 'launch:spotify':'Spotify',
+ 'launch:discord':'Discord',
+ 'launch:claude':'Claude',
+ 'launch:githubdesktop':'GitHub Desktop',
+ 'launch:whatsapp':'WhatsApp',
+ 'minimizeAll':'Minimize All',
+ 'shutdown':'Shut Down',
+ 'restart':'Restart',
+ 'cancelShutdown':'Cancel Shutdown',
+ 'media:previous':'Previous',
+ 'media:next':'Next',
+ 'media:volumeUp':'Volume Up',
+ 'media:volumeDown':'Volume Down',
+ 'media:mute':'Mute'
+};
+
+document.querySelectorAll('[data-action]').forEach(button=>{
+ const label=actionTitles[button.dataset.action];
+ if(label){
+  button.title=label;
+  button.setAttribute('aria-label',label);
+ }
+});
+
+let samples=[];
+
+async function refresh(){
+ try{
+  const response=await fetch('/health',{cache:'no-store'});
+  if(!response.ok)throw Error();
+  const data=await response.json();
+  const value=Number(data.cpu);
+
+  $('cpu').textContent=Number.isFinite(value)&&value>=0?Math.round(value):'—';
+  $('cpuBar').style.width=Number.isFinite(value)&&value>=0?value+'%':'0%';
+  $('pcName').textContent=data.computerName||'My PC';
+  $('pcStatus').textContent='Connected';
+  $('status').textContent='●';
+  $('status').title='Connected to PC';
+  $('status').className='status online';
+  $('updated').textContent='Updated '+new Date().toLocaleTimeString('en-US');
+
+  if(Number.isFinite(value)&&value>=0){
+   samples.push(value);
+   if(samples.length>30)samples.shift();
+   const points=samples.map((v,i)=>{
+    const x=i*600/29;
+    const y=95-v*.85;
+    return x+','+y;
+   }).join(' ');
+   $('chartLine').setAttribute('points',points);
+  }
+ }catch(e){
+  $('pcStatus').textContent='Disconnected';
+  $('status').textContent='●';
+  $('status').title='No connection';
+  $('status').className='status offline';
+  $('cpu').textContent='—';
+  $('cpuBar').style.width='0%';
+ }
+}
+
+async function action(name){
+ if(name==='shutdown'&&!confirm('Shut down the PC in 60 seconds?'))return;
+ if(name==='restart'&&!confirm('Restart the PC in 60 seconds?'))return;
+
+ try{
+  const response=await fetch('/action',{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({action:name})
+  });
+  const result=await response.json();
+  if(!response.ok||!result.ok)throw Error(result.error||'Action failed');
+ }catch(e){
+  alert('Could not complete action: '+(e.message||'Bridge connection failed'));
+ }
+}
+
+async function refreshProcesses(){
+ const list=$('processList');
+ if(!list)return;
+
+ list.innerHTML='<div class="process-empty">Loading processes...</div>';
+
+ try{
+  const response=await fetch('/processes',{cache:'no-store'});
+  const result=await response.json();
+
+  if(!response.ok||!result.ok)throw Error(result.error||'Could not load processes');
+
+  if(!Array.isArray(result.processes)||result.processes.length===0){
+   list.innerHTML='<div class="process-empty">No process information available.</div>';
+   return;
+  }
+
+  list.innerHTML=result.processes.map(p=>{
+   const name=String(p.name||'Unknown').replace(/[&<>"']/g,c=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+   }[c]));
+
+   const memory=Number(p.memoryMb);
+   const mem=Number.isFinite(memory)?memory.toFixed(0)+' MB':'—';
+
+   return '<div class="process-item"><span class="process-name">'+name+'</span><span class="process-meta">PID '+Number(p.id)+' · '+mem+'</span></div>';
+  }).join('');
+
+ }catch(e){
+  list.innerHTML='<div class="process-empty">'+(e.message||'Unable to load processes')+'</div>';
+ }
+}
+
+const processRefreshButton=$('refreshProcesses');
+if(processRefreshButton)processRefreshButton.addEventListener('click',refreshProcesses);
+
+document.querySelectorAll('[data-action]').forEach(button=>{
+ button.addEventListener('click',()=>action(button.dataset.action));
+});
+
+refresh();
+refreshProcesses();
+setInterval(refresh,1200);
+
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden)refresh();
+});
+</script>
+
+</body>
+</html>
