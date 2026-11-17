@@ -35,24 +35,41 @@ namespace PrivateDesk {
 "@
 }
 
+
+
 $script:previousCpu = [PrivateDesk.Native]::ReadCpu()
 $script:cpuPercent = -1
 $cpuSampleClock = [System.Diagnostics.Stopwatch]::StartNew()
-$computer = [Environment]::MachineName
-$osName = (Get-CimInstance -ClassName Win32_OperatingSystem -Property Caption).Caption
 
-function Get-CpuPercent {
-    $current = [PrivateDesk.Native]::ReadCpu()
-    $old = $script:previousCpu
-    $script:previousCpu = $current
-    $idleDelta = [double]($current[0] - $old[0])
-    $kernelDelta = [double]($current[1] - $old[1])
-    $userDelta = [double]($current[2] - $old[2])
-    $totalDelta = $kernelDelta + $userDelta
-    if ($totalDelta -le 0 -or $idleDelta -gt $totalDelta) { return -1 }
-    $busy = 100.0 * (1.0 - ($idleDelta / $totalDelta))
-    return [int][math]::Round([math]::Max(0, [math]::Min(100, $busy)))
+
+function Update-CpuPercent {
+    try {
+        $sample = Get-Counter '\Processor Information(_Total)\% Processor Utility' -ErrorAction Stop
+
+        $cpuSample = $sample.CounterSamples |
+            Where-Object { $_.InstanceName -eq '_total' } |
+            Select-Object -First 1
+
+        if ($null -eq $cpuSample) {
+            return
+        }
+
+        $value = [double]$cpuSample.CookedValue
+
+        if ([double]::IsNaN($value) -or [double]::IsInfinity($value)) {
+            return
+        }
+
+        $script:cpuPercent = [int][math]::Round(
+            [math]::Max(0, [math]::Min(100, $value))
+        )
+    }
+    catch {
+        # Keep the last valid reading.
+        Write-Warning "CPU sampling failed: $($_.Exception.Message)"
+    }
 }
+
 
 function Get-LaunchAppPath([string]$app) {
     switch ($app) {
@@ -83,6 +100,7 @@ function Start-ApprovedApp([string]$app) {
         'claude' { @('Claude') }
         'githubdesktop' { @('GitHub Desktop') }
         'whatsapp' { @('WhatsApp','WhatsApp Beta') }
+'unityhub' { @('Unity Hub') }
         default { throw 'App is not in the approved launch list.' }
     }
 
@@ -125,6 +143,7 @@ function Invoke-ApprovedAction([string]$name) {
         'launch:claude' { Start-ApprovedApp 'claude'; return 'Claude launched.' }
         'launch:githubdesktop' { Start-ApprovedApp 'githubdesktop'; return 'GitHub Desktop launched.' }
         'launch:whatsapp' { Start-ApprovedApp 'whatsapp'; return 'WhatsApp launched.' }
+'launch:unityhub' { Start-ApprovedApp 'unityhub'; return 'Unity Hub launched.' }
         'minimizeAll' {
             $shell = New-Object -ComObject Shell.Application
             try { $shell.MinimizeAll() } finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) }
@@ -160,7 +179,17 @@ try {
     Write-Host 'Approved actions: launch allowlisted apps, minimize all windows, lock, media keys, volume, shutdown/restart with confirmation in the UI.'
     Write-Host 'The server listens on loopback only. Press Ctrl+C to stop.'
     while ($true) {
-        if (-not $listener.Pending()) { Start-Sleep -Milliseconds 100; continue }
+
+    # Sample CPU independently of incoming HTTP requests.
+    if ($cpuSampleClock.ElapsedMilliseconds -ge 500) {
+        Update-CpuPercent
+        $cpuSampleClock.Restart()
+    }
+
+    if (-not $listener.Pending()) {
+        Start-Sleep -Milliseconds 100
+        continue
+    }
         $client = $listener.AcceptTcpClient()
         try {
             $client.ReceiveTimeout = 4000
@@ -188,12 +217,14 @@ try {
                 Send-Response $stream 200 'text/html; charset=utf-8' $bytes
             }
             elseif ($method -eq 'GET' -and $path -eq '/health') {
-                if ($cpuSampleClock.ElapsedMilliseconds -ge 1000) {
-                    $script:cpuPercent = Get-CpuPercent
-                    $cpuSampleClock.Restart()
-                }
-                Send-Json $stream 200 @{ok=$true;status='ok';computerName=$computer;osName=$osName;cpu=$script:cpuPercent}
-            }
+    Send-Json $stream 200 @{
+        ok = $true
+        status = 'ok'
+        computerName = $computer
+        osName = $osName
+        cpu = $script:cpuPercent
+    }
+}
             elseif ($method -eq 'GET' -and $path -eq '/processes') {
                 $items = @(Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First 8 | ForEach-Object {
                     @{name=$_.ProcessName;id=$_.Id;memoryMb=[math]::Round($_.WorkingSet64 / 1MB, 0)}
